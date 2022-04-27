@@ -10,22 +10,21 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 	alerts := rg.Group("/alerts")
 	{
 		alerts.GET("/", getAlerts)
-		alerts.POST("/dismiss", dismissAlert)
+		alerts.PUT("/:alertid", dismissAlert)
 	}
 }
 
 func getAlerts(c *gin.Context) {
-	alerts := alerts.GetUndismissedAlerts()
+	dismissedIds := alerts.GetDismissedAlerts()
+	unDismissedAlerts := alerts.GetUndismissedAlerts()
 	c.JSON(200, gin.H{
-		"alerts": alerts,
+		"alerts":          unDismissedAlerts,
+		"dismissedAlerts": dismissedIds,
 	})
 }
 
 func dismissAlert(c *gin.Context) {
-	var reqBody struct {
-		Id string `json:"id"`
-	}
-	c.BindJSON(&reqBody)
-	alerts.DismissAlert(reqBody.Id)
+	id := c.Param("alertid")
+	alerts.DismissAlert(id)
 	c.JSON(200, gin.H{})
 }

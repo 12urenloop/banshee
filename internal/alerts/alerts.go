@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type AlertLabel struct {
@@ -44,19 +42,34 @@ type AlertRequest struct {
 }
 
 var (
-	alerts          []Alert
-	dismissedAlerts []string
+	alerts []Alert = []Alert{
+		// {
+		// 	ID: "DIT_IS_EEN_TEST_ID",
+		// 	Labels: AlertLabel{
+		// 		Alertname: "service_up",
+		// 		Instance:  "172.12.50.22",
+		// 		Job:       "blackbox-ping",
+		// 		Name:      "client2",
+		// 		Service:   "client2",
+		// 		Severity:  "gravest",
+		// 	},
+		// 	Annotations: make(map[string]string),
+		// 	State:       "firing",
+		// 	ActiveAt:    "2022-04-26T19:40:31.656129563Z",
+		// 	Value:       "1e+00",
+		// },
+	}
+	dismissedAlerts []string = []string{}
 )
 
-func getIdForAlert() string {
-	id := uuid.New().String()
-	// Check id is already in use
+func generateIdForAlert(alert Alert) (string, bool) {
+	id := fmt.Sprintf("%s-%s-%s-%s-%s", alert.Labels.Service, alert.Labels.Job, alert.Labels.Name, alert.Labels.Severity, alert.ActiveAt)
 	for _, alert := range alerts {
 		if alert.ID == id {
-			return getIdForAlert()
+			return "", true
 		}
 	}
-	return id
+	return id, false
 }
 
 func fetch() {
@@ -89,13 +102,25 @@ func fetch() {
 		log.Panic(`Could not fetch alerts from Prometheus, returned status:`, alertRequest.Status)
 	}
 
-	alerts = alertRequest.Data.Alerts
+	newAlerts := alertRequest.Data.Alerts
 
+	idxToDelete := []int{}
 	// Assign ids to the alerts
-	for i := range alerts {
-		alerts[i].ID = getIdForAlert()
+	for i, alert := range newAlerts {
+		id, alreadyExists := generateIdForAlert(alert)
+		if alreadyExists {
+			idxToDelete = append(idxToDelete, i)
+		} else {
+			newAlerts[i].ID = id
+		}
 	}
-	log.Printf("Fetched %d alerts from Prometheus", len(alerts))
+	// loop over idxToDelete backwards to not mess up the index
+	for i := len(idxToDelete) - 1; i >= 0; i-- {
+		newAlerts = append(alerts[:idxToDelete[i]], alerts[idxToDelete[i]+1:]...)
+	}
+	// Add newAlerts to alerts
+	alerts = append(alerts, newAlerts...)
+	log.Printf("Fetched %d new alerts from Prometheus", len(newAlerts))
 }
 
 func isDismissed(alert Alert) bool {
@@ -128,6 +153,11 @@ func GetUndismissedAlerts() []Alert {
 	return undismissedAlerts
 }
 
+func GetDismissedAlerts() []string {
+	return dismissedAlerts
+}
+
 func DismissAlert(id string) {
+	log.Printf("Dismissing alert %s", id)
 	dismissedAlerts = append(dismissedAlerts, id)
 }

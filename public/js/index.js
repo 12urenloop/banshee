@@ -21,14 +21,21 @@ var getRelativeTime = (d1, d2 = new Date()) => {
 }
 // endregion
 
-let speech = new SpeechSynthesisUtterance();
-speech.lang = 'en';
-speech.volume = 1;
-speech.rate = 1;
-speech.pitch = 1;
+let loadedAlerts = [];
+let audio = new Audio('public/assets/siren.mp3');
 
 function dismissAlert(alertId) {
-  console.log('dismissing alert '+alertId);
+  fetch(`http://${window.location.host}/api/v1/alerts/${alertId}`, {
+    method: 'PUT'
+  })
+  removeAlert(alertId);
+}
+
+const removeAlert = (alertId) => {
+  let alertElem = document.getElementById(alertId);
+  // delete alertElem;
+  alertElem.remove();
+  loadedAlerts = loadedAlerts.filter(a => a !== alertId);
 }
 
 function addAlertElem(alert) {
@@ -44,6 +51,7 @@ function addAlertElem(alert) {
   alertTitleTxt.innerText = `${alert.labels.alertname} - ${alert.labels.name}`;
   let alertDismissBtn = document.createElement('button');
   alertDismissBtn.classList.add('delete');
+  console.log(alert.id);
   alertDismissBtn.onclick = () => dismissAlert(alert.id);
   alertTitle.appendChild(alertTitleTxt);
   alertTitle.appendChild(alertDismissBtn);
@@ -52,27 +60,33 @@ function addAlertElem(alert) {
   // body
   let alertBody = document.createElement('div');
   alertBody.classList.add('message-body');
+  let alertText = document.createElement('p');
+  alertText.innerText = `${alert.labels.name} has a ${alert.labels.alertname} alert on ${alert.labels.instance}`;
+  alertBody.appendChild(alertText);
   // Get relative time
   let alertTime = document.createElement('p');
   alertTime.innerText = getRelativeTime(new Date(alert.activeAt));
   alertTime.classList.add('has-text-right')
   alertBody.appendChild(alertTime);
-  let alertText = document.createElement('p');
-  alertText.innerText = `${alert.labels.name} has a ${alert.labels.alertname} alert on ${alert.labels.instance} at `;
-  alertBody.appendChild(alertText);
   alertElem.appendChild(alertBody);
+  
+  setInterval(() => {
+    alertTime.innerText = getRelativeTime(new Date(alert.activeAt));
+  },1000)
+
+  // Play airhorn sound
+  audio.play();
 
   document.getElementById('alerts').appendChild(alertElem);
-  speech.text = alertText.innerText;
-  console.log(speech)
-  window.speechSynthesis.speak(speech);
+  loadedAlerts.push(alert.id);
 }
 
 async function fetchAlerts() {
   const rawRes = await fetch(`http://${window.location.host}/api/v1/alerts`);
   const body = await rawRes.json();
-  console.log(body.alerts);
-  body.alerts.sort((a1, a2) => new Date(a2.activeAt).getTime() - new Date(a1.activeAt).getTime()).forEach(alert => addAlertElem(alert))
+  console.log(body);
+  body.alerts.filter(a => !loadedAlerts.includes(a.id)).sort((a1, a2) => new Date(a2.activeAt).getTime() - new Date(a1.activeAt).getTime()).forEach(alert => addAlertElem(alert))
+  body.dismissedAlerts.filter(id => loadedAlerts.includes(id)).forEach(id => removeAlert(id))
 }
 
 window.onload = () => {
@@ -81,15 +95,3 @@ window.onload = () => {
   let endpointElem = document.getElementById('endpoint');
   endpointElem.innerText = window.location.host;
 }
-
-window.speechSynthesis.onvoiceschanged = () => {
-  // Get List of Voices
-  voices = window.speechSynthesis.getVoices();
-
-  // Initially set the First Voice in the Array.
-  speech.voice = voices[0];
-
-  // Set the Voice Select List. (Set the Index as the value, which we'll use later when the user updates the Voice using the Select Menu.)
-  let voiceSelect = document.querySelector("#voices");
-  voices.forEach((voice, i) => (voiceSelect.options[i] = new Option(voice.name, i)));
-};
