@@ -27,6 +27,7 @@ func main() {
 		cors.New(cors.Config{
 			AllowAllOrigins: true,
 		}),
+		gin.Recovery(),
 	)
 
 	// Register routes

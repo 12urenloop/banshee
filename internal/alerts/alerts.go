@@ -76,11 +76,11 @@ func fetch() {
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST"), config.GetEnv("PROMETHEUS_PORT")))
 
 	if err != nil {
-		log.Panic(`Could not fetch alerts from Prometheus:`, err)
+		log.Println(`Could not fetch alerts from Prometheus:`, err)
 	}
 
 	if resp.StatusCode != 200 {
-		log.Panic(fmt.Sprintf(`Could not fetch alerts from Prometheus (code: %d):`, resp.StatusCode), resp.Status)
+		log.Println(fmt.Sprintf(`Could not fetch alerts from Prometheus (code: %d):`, resp.StatusCode), resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -88,18 +88,18 @@ func fetch() {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Panic(`Could not read response body:`, err)
+		log.Println(`Could not read response body:`, err)
 	}
 
 	var alertRequest AlertRequest
 	err = json.Unmarshal(body, &alertRequest)
 
 	if err != nil {
-		log.Panic(`Could not parse alert reponse body:`, err)
+		log.Println(`Could not parse alert reponse body:`, err)
 	}
 
 	if alertRequest.Status != "success" {
-		log.Panic(`Could not fetch alerts from Prometheus, returned status:`, alertRequest.Status)
+		log.Println(`Could not fetch alerts from Prometheus, returned status:`, alertRequest.Status)
 	}
 
 	newAlerts := alertRequest.Data.Alerts
