@@ -51,7 +51,6 @@ function addAlertElem(alert) {
   alertTitleTxt.innerText = `${alert.labels.alertname} - ${alert.labels.name}`;
   let alertDismissBtn = document.createElement('button');
   alertDismissBtn.classList.add('delete');
-  console.log(alert.id);
   alertDismissBtn.onclick = () => dismissAlert(alert.id);
   alertTitle.appendChild(alertTitleTxt);
   alertTitle.appendChild(alertDismissBtn);
