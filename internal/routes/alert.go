@@ -16,7 +16,9 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 
 func getAlerts(c *gin.Context) {
 	alerts := alerts.GetUndismissedAlerts()
-	c.JSON(200, alerts)
+	c.JSON(200, gin.H{
+		"alerts": alerts,
+	})
 }
 
 func dismissAlert(c *gin.Context) {
