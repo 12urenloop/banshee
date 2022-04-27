@@ -108,7 +108,7 @@ func fetch() {
 	// Assign ids to the alerts
 	for i, alert := range newAlerts {
 		id, alreadyExists := generateIdForAlert(alert)
-		if alreadyExists {
+		if alreadyExists || alert.State != "firing" {
 			idxToDelete = append(idxToDelete, i)
 		} else {
 			newAlerts[i].ID = id
