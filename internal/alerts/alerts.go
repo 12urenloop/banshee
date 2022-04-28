@@ -77,10 +77,12 @@ func fetch() {
 
 	if err != nil {
 		log.Println(`Could not fetch alerts from Prometheus:`, err)
+		return
 	}
 
 	if resp.StatusCode != 200 {
 		log.Println(fmt.Sprintf(`Could not fetch alerts from Prometheus (code: %d):`, resp.StatusCode), resp.Status)
+		return
 	}
 
 	defer resp.Body.Close()
@@ -89,6 +91,7 @@ func fetch() {
 
 	if err != nil {
 		log.Println(`Could not read response body:`, err)
+		return
 	}
 
 	var alertRequest AlertRequest
