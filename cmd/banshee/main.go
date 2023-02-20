@@ -4,35 +4,34 @@ import (
 	"12ul/banshee/internal/alerts"
 	"12ul/banshee/internal/config"
 	"12ul/banshee/internal/routes"
+	"log"
 	"net/http"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	// Load environment variables
 	config.LoadEnv()
 
-	// Create a new gin router
-	r := gin.Default()
+	// Static files
+	fileServer := http.StripPrefix("/public/", http.FileServer(http.Dir("./public")))
+	http.Handle("/public/", fileServer)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "public/index.html")
+	})
 
-	// All files besides the index page are accessible via /public endpoint
-	r.StaticFS("/public", http.Dir("public"))
-	r.StaticFile("/", "public/index.html")
+	http.HandleFunc("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			routes.HandleAlertFetch(w, r)
+			return
+		}
+		if r.Method == http.MethodPut {
+			routes.HandleAlertDismiss(w, r)
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
 
 	alerts.StartFetchInterval()
-
-	r.Use(
-		cors.New(cors.Config{
-			AllowAllOrigins: true,
-		}),
-		gin.Recovery(),
-	)
-
-	// Register routes
-	rg := r.Group("/api/v1")
-	routes.RegisterRoutes(rg)
-
-	r.Run(":" + config.GetEnv("PORT"))
+	if err := http.ListenAndServe(":"+config.GetEnv("PORT"), nil); err != nil {
+		log.Fatal(err)
+	}
 }

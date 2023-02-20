@@ -25,8 +25,9 @@ let loadedAlerts = [];
 let audio = new Audio('public/assets/siren.mp3');
 
 function dismissAlert(alertId) {
-  fetch(`http://${window.location.host}/api/v1/alerts/${alertId}`, {
-    method: 'PUT'
+  fetch(`http://${window.location.host}/api/v1/alerts`, {
+    method: 'PUT',
+    body: alertId,
   })
   removeAlert(alertId);
 }
@@ -83,7 +84,6 @@ function addAlertElem(alert) {
 async function fetchAlerts() {
   const rawRes = await fetch(`http://${window.location.host}/api/v1/alerts`);
   const body = await rawRes.json();
-  console.log(body);
   body.alerts.filter(a => !loadedAlerts.includes(a.id)).sort((a1, a2) => new Date(a2.activeAt).getTime() - new Date(a1.activeAt).getTime()).forEach(alert => addAlertElem(alert))
   body.dismissedAlerts.filter(id => loadedAlerts.includes(id)).forEach(id => removeAlert(id))
 }

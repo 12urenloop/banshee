@@ -73,7 +73,8 @@ func generateIdForAlert(alert Alert) (string, bool) {
 }
 
 func fetch() {
-	resp, err := http.Get(fmt.Sprintf("http://%s:%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST"), config.GetEnv("PROMETHEUS_PORT")))
+	// resp, err := http.Get(fmt.Sprintf("http://%s:%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST"), config.GetEnv("PROMETHEUS_PORT")))
+	resp, err := http.Get(fmt.Sprintf("https://%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST")))
 
 	if err != nil {
 		log.Println(`Could not fetch alerts from Prometheus:`, err)
@@ -110,6 +111,10 @@ func fetch() {
 	idxToDelete := []int{}
 	// Assign ids to the alerts
 	for i, alert := range newAlerts {
+		if alert.State != "firing" {
+			idxToDelete = append(idxToDelete, i)
+			continue
+		}
 		id, alreadyExists := generateIdForAlert(alert)
 		if alreadyExists || alert.State != "firing" {
 			idxToDelete = append(idxToDelete, i)
@@ -119,7 +124,11 @@ func fetch() {
 	}
 	// loop over idxToDelete backwards to not mess up the index
 	for i := len(idxToDelete) - 1; i >= 0; i-- {
-		newAlerts = append(alerts[:idxToDelete[i]], alerts[idxToDelete[i]+1:]...)
+		if len(alerts)+1 == idxToDelete[i]+1 {
+			newAlerts = alerts[:idxToDelete[i]]
+		} else {
+			newAlerts = append(alerts[:idxToDelete[i]], alerts[idxToDelete[i]+1:]...)
+		}
 	}
 	// Add newAlerts to alerts
 	alerts = append(alerts, newAlerts...)
