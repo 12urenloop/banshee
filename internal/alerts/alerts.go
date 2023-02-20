@@ -73,8 +73,7 @@ func generateIdForAlert(alert Alert) (string, bool) {
 }
 
 func fetch() {
-	// resp, err := http.Get(fmt.Sprintf("http://%s:%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST"), config.GetEnv("PROMETHEUS_PORT")))
-	resp, err := http.Get(fmt.Sprintf("https://%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST")))
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/api/v1/alerts", config.GetEnv("PROMETHEUS_HOST"), config.GetEnv("PROMETHEUS_PORT")))
 
 	if err != nil {
 		log.Println(`Could not fetch alerts from Prometheus:`, err)
